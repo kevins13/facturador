@@ -9,6 +9,8 @@ RUN npm install
 # Copiar el código fuente y compilar
 COPY . .
 # Se puede pasar la variable del API URL en tiempo de construcción si se requiere
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Imagen final ligera para servir la app
