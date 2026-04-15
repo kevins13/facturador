@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
-import api from '../../../utils/api';
+import api from '../../utils/api';
 
 const InvoiceForm = () => {
   const navigate = useNavigate();

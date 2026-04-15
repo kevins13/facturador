@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Search, Download } from 'lucide-react';
 import { format } from 'date-fns';
-import api from '../../../utils/api';
+import api from '../../utils/api';
 
 const InvoiceDetail = () => {
   const { id } = useParams();

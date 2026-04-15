@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import api from '../../../utils/api';
+import api from '../../utils/api';
 
 const ClientForm = () => {
   const { id } = useParams();

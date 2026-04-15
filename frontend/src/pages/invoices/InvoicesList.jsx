@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Eye, FileText } from 'lucide-react';
 import { format } from 'date-fns';
-import api from '../../../utils/api';
+import api from '../../utils/api';
 
 const InvoicesList = () => {
   const [invoices, setInvoices] = useState([]);
