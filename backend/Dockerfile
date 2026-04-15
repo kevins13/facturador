@@ -21,4 +21,4 @@ RUN npm run build --if-present
 EXPOSE 3000
 
 # Añadir script para hacer migraciones nativas de NodeJS, sincronización segura y rellenar auth base
-CMD ["sh", "-c", "node migrate.js && node seed.js && node src/index.js"]
+CMD ["sh", "-c", "node migrate.js; node seed.js; node src/index.js"]
