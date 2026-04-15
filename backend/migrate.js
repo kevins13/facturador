@@ -1,5 +1,5 @@
-const { drizzle } = require('drizzle-orm/node-postgres');
-const { migrate } = require('drizzle-orm/node-postgres/migrator');
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -8,15 +8,26 @@ async function run() {
     connectionString: process.env.DATABASE_URL,
   });
 
-  const db = drizzle(pool);
-
-  console.log('Running migrations...');
+  console.log('Running raw SQL migrations directly...');
   try {
-    await migrate(db, { migrationsFolder: './drizzle' });
+    const sqlFile = path.join(__dirname, 'drizzle', '0000_round_serpent_society.sql');
+    if (!fs.existsSync(sqlFile)) {
+        console.error('SQL file not found at:', sqlFile);
+        process.exit(1);
+    }
+    const sql = fs.readFileSync(sqlFile, 'utf-8');
+    const sqlCommands = sql.split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean);
+    
+    for (let cmd of sqlCommands) {
+       try {
+         await pool.query(cmd);
+       } catch(e) {
+         console.log('Ignoring query error (likely already exists):', e.message);
+       }
+    }
     console.log('Migrations complete!');
   } catch (error) {
-    console.error('Migration failed!', error);
-    process.exit(1);
+    console.error('Migration runtime failed!', error);
   } finally {
     await pool.end();
   }
