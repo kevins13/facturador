@@ -20,5 +20,5 @@ RUN npm run build --if-present
 # Exponer el puerto
 EXPOSE 3000
 
-# Añadir script para hacer schema push en Drizzle y rellenar auth base
-CMD ["sh", "-c", "npx drizzle-kit push && node seed.js && node src/index.js"]
+# Añadir script para hacer schema push en Drizzle de forma forzada y rellenar auth base
+CMD ["sh", "-c", "npx drizzle-kit push --force && node seed.js && node src/index.js"]
