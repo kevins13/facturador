@@ -1,14 +1,15 @@
-const { PrismaClient } = require('@prisma/client');
+const db = require('../db');
+const { invoices, invoiceItems } = require('../db/schema');
+const { eq, desc } = require('drizzle-orm');
 const pdfService = require('../services/pdf.service');
-const prisma = new PrismaClient();
 
 const getAll = async (req, res) => {
     try {
-        const invoices = await prisma.invoice.findMany({
-            include: { client: true },
-            orderBy: { createdAt: 'desc' }
+        const result = await db.query.invoices.findMany({
+            with: { client: true },
+            orderBy: [desc(invoices.createdAt)]
         });
-        res.json(invoices);
+        res.json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al obtener facturas' });
@@ -18,17 +19,17 @@ const getAll = async (req, res) => {
 const getById = async (req, res) => {
     try {
         const { id } = req.params;
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: parseInt(id) },
-            include: {
+        const result = await db.query.invoices.findFirst({
+            where: eq(invoices.id, parseInt(id)),
+            with: {
                 client: true,
                 items: true
             }
         });
 
-        if (!invoice) return res.status(404).json({ message: 'Factura no encontrada' });
+        if (!result) return res.status(404).json({ message: 'Factura no encontrada' });
         
-        res.json(invoice);
+        res.json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al obtener factura' });
@@ -51,15 +52,29 @@ const create = async (req, res) => {
             };
         });
 
-        const invoice = await prisma.invoice.create({
-            data: {
+        // Inserción Transaccional usando Drizzle
+        const invoiceData = await db.transaction(async (tx) => {
+            const newInvoiceRes = await tx.insert(invoices).values({
                 clientId: parseInt(clientId),
-                total,
-                items: {
-                    create: processedItems
-                }
-            },
-            include: {
+                total
+            }).returning();
+            
+            const newInvoiceId = newInvoiceRes[0].id;
+            
+            const itemsToInsert = processedItems.map(item => ({
+                ...item,
+                invoiceId: newInvoiceId
+            }));
+
+            await tx.insert(invoiceItems).values(itemsToInsert);
+            
+            return newInvoiceId;
+        });
+
+        // Obtener comprobante totalmente creado usando relational query
+        const invoice = await db.query.invoices.findFirst({
+            where: eq(invoices.id, invoiceData),
+            with: {
                 client: true,
                 items: true
             }
@@ -75,11 +90,11 @@ const create = async (req, res) => {
 const markAsPaid = async (req, res) => {
     try {
         const { id } = req.params;
-        const invoice = await prisma.invoice.update({
-            where: { id: parseInt(id) },
-            data: { status: 'paid' }
-        });
-        res.json(invoice);
+        const result = await db.update(invoices)
+            .set({ status: 'paid' })
+            .where(eq(invoices.id, parseInt(id)))
+            .returning();
+        res.json(result[0]);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al actualizar estado de factura' });
@@ -89,9 +104,9 @@ const markAsPaid = async (req, res) => {
 const downloadPDF = async (req, res) => {
     try {
         const { id } = req.params;
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: parseInt(id) },
-            include: {
+        const invoice = await db.query.invoices.findFirst({
+            where: eq(invoices.id, parseInt(id)),
+            with: {
                 client: true,
                 items: true
             }

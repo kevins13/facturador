@@ -1,12 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const db = require('../db');
+const { clients } = require('../db/schema');
+const { eq, desc } = require('drizzle-orm');
 
 const getAll = async (req, res) => {
     try {
-        const clients = await prisma.client.findMany({
-            orderBy: { createdAt: 'desc' }
-        });
-        res.json(clients);
+        const result = await db.select().from(clients).orderBy(desc(clients.createdAt));
+        res.json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al obtener clientes' });
@@ -16,13 +15,11 @@ const getAll = async (req, res) => {
 const getById = async (req, res) => {
     try {
         const { id } = req.params;
-        const client = await prisma.client.findUnique({
-            where: { id: parseInt(id) }
-        });
+        const result = await db.select().from(clients).where(eq(clients.id, parseInt(id)));
 
-        if (!client) return res.status(404).json({ message: 'Cliente no encontrado' });
+        if (result.length === 0) return res.status(404).json({ message: 'Cliente no encontrado' });
         
-        res.json(client);
+        res.json(result[0]);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al obtener cliente' });
@@ -32,10 +29,10 @@ const getById = async (req, res) => {
 const create = async (req, res) => {
     try {
         const { name, email, phone, address, cuit } = req.body;
-        const client = await prisma.client.create({
-            data: { name, email, phone, address, cuit }
-        });
-        res.status(201).json(client);
+        const result = await db.insert(clients).values({
+            name, email, phone, address, cuit
+        }).returning();
+        res.status(201).json(result[0]);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al crear cliente' });
@@ -47,12 +44,12 @@ const update = async (req, res) => {
         const { id } = req.params;
         const { name, email, phone, address, cuit } = req.body;
         
-        const client = await prisma.client.update({
-            where: { id: parseInt(id) },
-            data: { name, email, phone, address, cuit }
-        });
-        
-        res.json(client);
+        const result = await db.update(clients)
+            .set({ name, email, phone, address, cuit })
+            .where(eq(clients.id, parseInt(id)))
+            .returning();
+            
+        res.json(result[0]);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al actualizar cliente' });
@@ -62,9 +59,7 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.client.delete({
-            where: { id: parseInt(id) }
-        });
+        await db.delete(clients).where(eq(clients.id, parseInt(id)));
         res.json({ message: 'Cliente eliminado exitosamente' });
     } catch (error) {
         console.error(error);

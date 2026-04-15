@@ -11,15 +11,14 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm install
 
-# Copiar el esquema de Prisma y generar el cliente (antes de copiar todo para aprovechar caché de Docker)
-COPY prisma ./prisma/
-RUN npx prisma generate
-
 # Copiar todo el código fuente
 COPY . .
+
+# Drizzle Kit usa la variable de entorno y los esquemas para hacer push automáticos
+RUN npm run build --if-present
 
 # Exponer el puerto
 EXPOSE 3000
 
-# Añadir script para correr migraciones y rellenar seed antes del inicio
-CMD ["sh", "-c", "npx prisma migrate deploy && node seed.js && node src/index.js"]
+# Añadir script para hacer schema push en Drizzle y rellenar auth base
+CMD ["sh", "-c", "npx drizzle-kit push && node seed.js && node src/index.js"]

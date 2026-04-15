@@ -1,19 +1,21 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-const prisma = new PrismaClient();
+const db = require('../db');
+const { users } = require('../db/schema');
+const { eq } = require('drizzle-orm');
 
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
+        
+        const userRes = await db.select().from(users).where(eq(users.email, email));
+        if (userRes.length === 0) {
             return res.status(401).json({ message: 'Credenciales inválidas' });
         }
-
+        
+        const user = userRes[0];
         const validPassword = await bcrypt.compare(password, user.password);
+        
         if (!validPassword) {
             return res.status(401).json({ message: 'Credenciales inválidas' });
         }
@@ -33,13 +35,12 @@ const login = async (req, res) => {
 
 const me = async (req, res) => {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
-            select: { id: true, email: true }
-        });
-        if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+        const userRes = await db.select({ id: users.id, email: users.email })
+            .from(users).where(eq(users.id, req.user.id));
+            
+        if (userRes.length === 0) return res.status(404).json({ message: 'Usuario no encontrado' });
         
-        res.json({ user });
+        res.json({ user: userRes[0] });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error del servidor' });
