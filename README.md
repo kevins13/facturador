@@ -44,30 +44,35 @@ npm install
 npm run dev
 ```
 
+### 3. Opción: Docker Compose (Para entorno de desarrollo)
+Si dispones de Docker instalado, puedes iniciar todo el ecosistema (PostgreSQL, Backend y Frontend) con un solo comando:
+```bash
+docker-compose up --build -d
+```
+Esto pondrá el sistema en marcha asegurando los siguientes **puertos locales**:
+- **Backend API:** Expuesto en el puerto `3000` (http://localhost:3000)
+- **Frontend App:** Expuesto en el puerto `5173` (http://localhost:5173)
+- **Base de Datos:** Expuesto en el puerto `5432`
+
 ---
 
-## 🌐 Deploy en Railway
+## 🌐 Deploy en Railway (Zero-Config con Dockerfiles)
 
-### Estrategia recomendada: Dos Servicios
-
-Deberás crear dos servicios conectados al mismo repositorio en Railway, especificando **Directorios Raíz (Root Directory)** distintos para cada uno.
+Gracias a la inclusión de los `Dockerfile`, el despliegue a Railway es totalmente automatizado y directo. Solo necesitas separar la aplicación conectando el repositorio a dos servicios distintos (*Microservicios*).
 
 #### Servicio 1: Backend (Base de datos Node y Postgres)
 1. En Railway, crea un Plugin de PostgreSQL.
-2. Crea un nuevo servicio (Node) conectado a la carpeta `/backend` usando la opción `Root Directory: /backend`.
-3. Establece Variables de Entorno en Railway:
-   - `DATABASE_URL`: Asigna la URL del plugin de base de datos (`${{Postgres.DATABASE_URL}}` usando la variable reference de Railway).
+2. Crea un nuevo servicio desde GitHub conectado al ROOT Directory de `/backend`.
+3. Establece las Variables de Entorno en Railway:
+   - `DATABASE_URL`: Asigna la URL del plugin de base de datos (`${{Postgres.DATABASE_URL}}`).
    - `JWT_SECRET`: Ingresa una cadena segura al azar.
-4. El script `start` en el package.json iniciará correctamente el servidor (`node src/index.js`).
-5. **Comanado Build (Opcional):** Si quieres ejecutar DB scripts, puedes colocar `npx prisma migrate deploy` en el Build Command.
+4. **Listo.** Railway detectará tu `backend/Dockerfile`. Compilará mágicamente el sistema y aplicará `npx prisma migrate deploy` antes de encender un puerto en modo backend automáticamente.
 
-#### Servicio 2: Frontend (Vite Static Build)
+#### Servicio 2: Frontend (Vite App)
 1. Crea otro servicio usando el mismo repositorio pero el Root Directory será `/frontend`.
-2. Establece Variable de Entorno en Railway:
-   - `VITE_API_URL`: La URL pública de tu servicio Backend (ej. `https://tuhostbackend.up.railway.app/api`).
-3. Comandos estándar de Railway para Nixpacks:
-   - Build command: `npm run build`
-   - Start command (automático para frontend usando serv o el integrado de Railway).
+2. Establece la variable de entorno en Railway:
+   - `VITE_API_URL`: Pasa el dominio público generado de tu servicio Backend (ej. `https://micodigobackend.up.railway.app/api`).
+3. **Listo.** Railway leerá tu `frontend/Dockerfile` y abrirá dinámicamente un puerto nativo sirviendo tu Frontend ya optimizado para producción de la forma más veloz posible.
 
 ---
 
